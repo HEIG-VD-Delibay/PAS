@@ -1,0 +1,184 @@
+skill Lazylist
+
+// TODO: utiliser d'autres formes d'initialisations de LazyList pour varier un peu
+
+exo Comportement des Lazylist
+subexo
+Qu'affiche ce code ?
+```scala
+val list = LazyList.from(1)
+val result = list
+    .map(_ + 1)
+    .filter(_ > 3)
+    .take(7).map(n => print(s"$n "))
+print("done")
+```
+
+sol done
+
+Elle affiche juste `done`, aucun map filter ou take ne s'effectue comme toutes les méthodes sont lazy.
+
+subexo
+Qu'affiche ce code ?
+```scala
+  val list = LazyList.from(1)
+  val result = list
+      .map(_ + 1)
+      .take(4)
+      .filter(_ > 3)
+      .toList
+      .map(n => print(s"$n "))
+  print("done")
+```
+sol 4 5 done
+
+subexo Déclencheur
+Quelle est la première méthode non lazy qui déclenche l'usage des méthodes lazy ?
+```scala
+  val list = LazyList.from(1)
+  val result = list
+      .map(_ + 1)
+      .take(4)
+      .filter(_ > 3)
+      .toList
+      .map(n => print(s"$n "))
+  print("done")
+```
+sol toList
+
+exp C'est la méthode `toList` qui va lire la liste donnée par le filter jusqu'à arriver à la fin, filter a son tour va déclencher la génération du `take` et du `map`.
+
+subexo .open
+Ce code a un petit soucis à l'exécution, peux-tu l'imaginer et expliquer le problème ?
+```scala
+val list = LazyList.from(1)
+val result = list
+  .dropWhile(_ < 10)
+  .map(_ * 3)
+  .toList
+print("done")
+```
+
+exp
+La `LazyList` étant infinie, la création de la `List` via le `toList` ne se finira jamais car nous n'avons pas défini de limite dans le nombre d'éléments ou une autre contraintes qui permettrait de s'arrêter à un moment. On aurait pu utiliser `take` ou définir une LazyList finie.
+
+subexo Un simple aller-retour
+Qu'affiche ce morceau de code ?
+```scala
+val list = LazyList.from(2)
+val result = list.map(n => {print(s"m$n "); n}) // affiche m3 quand n vaut 3
+val result2 = result.take({print("take "); 3})
+val result3 = result2.filter(n => {print(s"f$n "); n > 2})  // affiche f3 quand n vaut 3
+result3.toList.map(n => print(s"$n "))
+```
+
+sol
+take m2 f2 m3 f3 m4 f4 3 4
+
+exp
+Explication de l'exécution et affichage étape par étape.
+1. `map`, `filter` n'évalue rien du tout comme leur paramètre sont en call by name (Rien tant qu'on appelle pas la méthode `toList`.)
+1. La méthode `take` qui prend un `Int` en paramètre (c'est un call by value normal), on va donc évaluer son paramètre, cette expression va afficher le mot `take` et retourner 3
+1. Le `toList` va trigger une génération de la liste `result3` fournie par le `filter`, qui va lui même lire la liste donnée par `take` et qui va lui même lire la liste donnée par `map`. `map` va demander la suite de la liste de `from` qui va donner `2`.
+1. `map` doit ensuite appliquer sa fonction, d'où l'affichage de `m2`
+1. cette valeur passe le `take` qui n'a plus que 2 éléments à laisser passer avant d'indiquer la fin de la liste
+1. le `filter` doit maintenant appliquer sa fonction et affiche `f2`
+1. le `toList` construit sa `List[Int]` et demande l'élément suivant jusqu'à arriver à `LazyList.empty`. Ce qui fait les mêmes allers retours que précédemment pour chercher le 3 et le 4, d'où `m3 f3 m4 f4`.
+1. Les allers retours s'arrête dès que `take` a traité 3 éléments, le filter n'a retourné que les 2 derniers (le 3 et le 4)
+1. Notre liste est donc `List(3, 4)`, celle ci passe dans le `map` final ce qui affiche `3 4` à la fin
+
+exo Code équivalent ?
+
+Ce code
+
+```scala
+val list = LazyList.from(2)
+val result = list.map(_ + 5)
+val result2 = result.take(3)
+val result3 = result2.filter(_ > 2)
+result3.toList
+```
+
+est-il équivalent en terme de résultat et d'exécution à cette autre code ?
+```scala
+val list = LazyList.from(2)
+val result = list
+  .map(_ + 5)
+  .take(3)
+  .filter(_ > 2)
+  .toList
+```
+
+sol true
+
+exp **Oui c'est équivalent**, stocker les résultats intermédiaires peut paraitre "forcer" l'évaluation des listes mais non, cela reste des `LazyList` qui sont sauvées dans chaque variable `result` et évaluées le plus tard possible.
+
+exo Nombre de valeurs dans une fonction intermédiaire
+Combien de fois est appelé la fonction passé à `filter` ? Dit autrement, combien de lignes `filtered something` affiche ce code ?
+```scala
+val list = LazyList.from(0)
+val result = list
+  .map(_ + 3)
+  .take(100)
+  .filter(n => {println("filtered something"); n > 5})
+  .take(4)
+  .toList
+```
+
+sol 7
+exp 7 fois. Le toList qui lance la génération via le `take` qui va continuer demander à filter jusqu'à avoir eu 4 éléments. Le filter va fail 3 fois (pour n = 3, 4, 5) puis réussir sur n = 6, 7, 8, 9. Le filter aura donc traité `3 + 4 = 7` valeurs.
+
+Si tu as répondu 100, attention le `take` est lazy, il ne va pas générer une liste de 100 valeurs avant de continuer, il ne genère que sur demande du filter.
+
+exo Compter les appels et déduire le résultat
+subexo Combien de fois est appelé la fonction passé à `filter` ? Dit autrement, combien de lignes `filtered something` affiche ce code ?
+```scala
+val list = (1 to 10).to(LazyList)
+val result = list
+.filter(n => {println("filtered something"); n > 7 })
+.take(6)
+.toList
+```
+sol 10
+exp 10 fois. Le `take` continuera à demander à filter de travailler.
+
+
+subexo Résultat
+Donne les valeurs de la `List` finale `result`, séparé par des espaces.
+sol 8 9 10
+
+exp `(1 to 10)` signifie une liste des éléments 1,2,3...10. La take a du s'arrêter a 3 éléments comme filter a retourné une `LazyList.empty` après que la queue de la LazyList a retourné une `LazyList.empty` après avoir donné 10 éléments.
+
+exo .open Comprendre des erreurs de compilation, initialisation de LazyList
+
+En écrivant ce morceau de code:
+```scala
+val list   = LazyList.cons(2, LazyList(12, LazyList.empty))
+val result = list.dropWhile(_ < 10)
+```
+
+Nous obtenons cette erreur de compilation
+
+```
+[error] ./Main.scala:5:16
+[error] value < is not a member of LazyList[Nothing] | Int
+[error]     .dropWhile(_ < 10)
+[error]                ^^^
+```
+
+Nous avons pourtant bien respecté la signature de `apply` du `cons`, un Int puis une LazyList. Explique en 1-2 phrases pourquoi cette erreur et comment la corriger ?
+
+```scala
+def apply[A](hd: => A, tl: => LazyList[A]): LazyList[A]
+```
+
+exp
+En fait `list` vaut `LazyList(2, 12, LazyList.empty)` au lieu de `LazyList(2, 12)`
+
+L'erreur provient de la queue de la liste définie comme une lazylist contenant un Int et une `LazyList` vide (du type `List[Nothing]`), `list` est au final une `LazyList[LazyList[Nothing] | Int]`, et l'erreur nous indique que l'opérateur `<` n'est pas disponible sur les LazyList !
+
+**Il faut donc corriger l'oubli de l'opérateur `cons`** à la place pour avoir à nouveau une `LazyList[Int]` sur le 2ème argument.
+
+```scala
+val list   = LazyList.cons(2, LazyList.cons(12, LazyList.empty))
+```
