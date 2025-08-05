@@ -1,0 +1,7 @@
+exo
+Le code fourni dans `main.scala` affiche `Future(Success(3))`, on aimerait qu'elle affiche `3` à la place. Change ce code pour que ça marche.
+
+check Output correct
+see 3
+
+exp Il suffit d'utiliser `flatMap` qui va convertir la future de future en une future simple. Ainsi la future qui sort de `flatMap` est une `Future[Int]`, ce qui nous permet d'avoir un Int qui arrive sur le `println`.

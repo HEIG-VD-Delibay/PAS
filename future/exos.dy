@@ -1,0 +1,433 @@
+skill Future
+
+exo Découverte des futures
+
+subexo .open
+
+Etant donnée le code suivant
+```scala
+@main def hello(): Unit = {
+  println("Go")
+  for i <- 1 to 3 do Future { println("o") }
+  println("End")
+}
+```
+On lance le programme une première fois et on obtient le code suivant.
+```sh
+Go
+End
+```
+Pourquoi il n'y a-t-il pas d'affichage des `o` ?
+
+exp
+
+Parce que l'ordonnanceur des tâches asynchrone a choisi d'exécuter d'abord la tâche principal (d'où le `End` final) et ensuite le programme a quitté sans attendre les futures lancées.
+
+On aurai pu mettre un `Thread.sleep` par exemple pour attendre volontairement un certain temps.
+
+subexo Exécutions possibles
+
+Etant donnée le code suivant
+```scala
+@main def hello(): Unit = {
+  println("Go")
+  for i <- 1 to 3 do Future { println("o") }
+  println("End")
+}
+```
+
+Coche toutes les exécutions possibles du programme
+
+A
+```
+Go
+o
+o
+End
+o
+```
+
+B
+```
+Go
+o
+End
+```
+C
+```
+o
+Go
+End
+```
+
+D
+```
+Go
+o
+o
+End
+```
+
+F
+```
+End
+Go
+o
+o
+o
+```
+
+G
+```
+Go
+```
+H
+```
+Go
+ooo
+
+
+End
+```
+
+opt
+- 
+
+La solution est A, B, D. Le reste est faux parce que `Go` doit être avant `End`, `End` est forcément affiché, et `Go` est forcément après un premier `o`. La H est fausse car le `println` imprime le `o` et le `\n` d'un seul coup, ils ne peuvent pas donc être fait de manière séparée.
+
+Si on le compile nativement ce fichier `Main.scala`
+```sh
+scala-cli package --power Main.scala --native
+```
+et qu'on l'exécute 100 fois avec un petit utilitaire `xtimes` (créé pour le cours de PCO), on peut voir que même si certaines sont beaucoup rares que d'autres, toutes les ordres d'exécutions des futures sont possibles et qu'on a aucune garantie sur l'exécution et quelle future pourra se terminer ou non.
+```sh
+> xtimes 100 ./hello
+Results
+ 7 times
+Go
+o
+o
+End
+o
+
+ 2 times
+Go
+o
+End
+
+89 times
+Go
+o
+o
+End
+
+1 time
+Go
+o
+o
+End
+o
+
+1 time
+Go
+End
+```
+
+
+
+subexo .open Etats possible des futures 1.3
+
+Citer les 3 états possible des futures.
+
+exp
+- En cours
+- Terminé avec succès
+- Terminé avec échec
+
+subexo .open Petit problème
+
+Quel est le problème dans ce morceau de code ? Donner le nom de ce qui est fait et expliquer quelle autre approche corrige le problème.
+```scala
+import scala.concurrent.*
+import scala.concurrent.ExecutionContext.Implicits.global
+
+// A slow function running "tool --version" and extracting the version number
+def getInstalledSoftwareVersion(tool: String): Future[String] = ???
+
+@main def hello(): Unit =
+  val f1 = getInstalledSoftwareVersion("sbt")
+  while !f1.isCompleted do Thread.sleep(100)
+  val version = f1.value // Note: simplified version
+  println(s"sbt version $version is installed !")
+```
+
+exp
+Le problème c'est qu'on fait de l'**attente active**, on attend activement que la Futur se finisse, ce qui retire tout l'intérêt de son exécution asynchrone qui permet de faire autre chose. Autant lancer le travail sans Future à ce moment là. A la place on ne va pas attendre dessus mais directement définir ce qui se passe quand la future sera en état terminé.
+</details>
+
+
+exo Imaginer l'exécution
+subexo
+
+Etant donnée ce code, quelles affirmations sont garanties ?
+
+```scala
+import scala.concurrent.*
+import scala.concurrent.ExecutionContext.Implicits.global
+
+@main def hello(): Unit = {
+  Future { print("A ") }.map { x => print("B ") }
+  Future { print("C ") }.map { x => print("D ") }
+  Thread.sleep(200)
+}
+```
+
+- L'affichage donne `A B C D`
+- Le code affiche forcément les 4 lettres
+- .ok `A` s'affiche avant `B`
+- `B` s'affiche avant `C`
+- `A` s'affiche avant `D`
+- .ok `C` s'affiche avant `D`
+- La future avec `A` commence avant celle pour `C`
+
+exp
+La solution est 3 et 6. Tout le reste est faux. Pour la 2, on pourrait voir dans un cas extrême un ordonnancement qui ne lance pas une des futures avant 200ms. Le programme quitterait après avoir affiché seulement 3 lettres.
+
+En pratique on voit que l'ordonnancement est très souvent fait dans l'ordre "logique" imaginé.
+```sh
+> xtimes 1000 ./hello
+Results
+ 7 times A C B D
+ 4 times C A B D
+985 times A B C D
+ 4 times A C D B
+
+Ran 1000 times './hello', found 4 unique outputs
+```
+
+subexo
+
+Cet output est-il déterministe ? (en considérant que le temps en sleep est suffisant pour que toutes les futures se soient lancées).
+
+```scala
+  val f1 = Future { print("A ") }
+  val f2 = f1.map { x => print("B ") }
+  val f3 = f1.map { x => print("C ") }
+  val f4 = f2.map { x => print("D ") }
+  Thread.sleep(100)
+```
+
+sol false
+
+exp
+Non, les 2 map sur `f1` font qu'on ne peut pas savoir si `C` ou `B` s'affiche d'abord.
+
+subexo
+
+Cet output est-il déterministe ? (en considérant que le temps en sleep est suffisant pour que toutes les futures se soient lancées).
+
+```scala
+  val f1 = Future { throw Exception("oups "); print("hey ") }
+    .map(_ => print("yo "))
+    .recover(e => print("error: " + e.getMessage()))
+  Thread.sleep(100)
+```
+
+Si oui donne l'output, sinon écrit `INDE` et réfléchit dans ta tête le pourquoi ce n'est pas déterministe.
+
+sol error: oups
+exp C'est déterministe, et l'output est `error: oups`
+
+subexo
+Qu'affiche ce bout de code ?
+
+```scala
+  val f1 = Future { print("hey "); 2 }
+    .recover(e => { print("error"); 4 })
+    .map(x => print(s"ok $x"))
+  Thread.sleep(100)
+```
+sol hey ok 2
+
+exp Le recover ne s'étant pas lancé, le valeur de résultat de la première future contient toujours `2`, cette valeur est récupérée dans le `x` du `map`.
+
+subexo
+Qu'affiche ce bout de code ?
+
+```scala
+  val f1 = Future { print("hey "); throw Exception("aii") }
+    .recover(e => { print("error "); 4 })
+    .map(x => print(s"ok $x"))
+  Thread.sleep(100)
+```
+
+sol hey error ok 4
+exp Le `recover` définit une nouvelle valeur de résultat de la future à 4, ce qui explique sa récupération dans le map.
+
+exo Types de futures
+
+```scala
+  val f0 = Future { List(1, 2, 3, 4) }
+  val f1 = Future { print("hey ") }
+  val f2 = Future { false }
+  val f3 = f1.map(x => Future { true })
+  val f4 = f2.flatMap(x => Future { if x then 2 else 5 })
+  val f5 = f2.recoverWith(e => Future { e.getMessage() })
+  val f6 = f0.map(_ => { throw Exception("oupsi"); 32 }).recover(e => e.getMessage())
+```
+
+subexo Type de f0 ?
+sol Future[List[Int]]
+
+subexo Type de f1 ?
+sol Future[Unit]
+
+subexo Type de f2 ?
+sol Future[Boolean]
+
+subexo Type de f3 ?
+sol Future[Future[Boolean]]
+
+subexo Type de f4 ?
+sol Future[Int]
+
+subexo Type de f5 ?
+Ca se corse attention...
+sol Future[Boolean | String]
+
+subexo Type de f6 ?
+sol Future[Int | String]
+
+exp Même si la callback du map va dans tous les cas jeter un exception, le type de résultat `Int` reste à prendre en compte. Le type de retour de recover impacte le type de la future puisqu'elle passe dans l'état réussi à ce moment.
+
+// TODO: encore des exos de type sur les For comprehensions avec des Future
+
+exo Code équivalent ?
+Le code précédent
+```scala
+  Future { print("hey "); throw Exception("aii") }
+    .recover(e => { print("error "); 4 })
+    .map(x => print(s"ok $x"))
+  Thread.sleep(100)
+```
+et cette version avec `map` et `recover` inversé
+```scala
+  Future { print("hey "); throw Exception("aii") }
+    .map(x => print(s"ok $x"))
+    .recover(e => { print("error "); 4 })
+  Thread.sleep(100)
+```
+et cette troisième version
+```scala
+  val f1 = Future { print("hey "); throw Exception("aii") }
+  f1.map(x => print(s"ok $x"))
+  f1.recover(e => { print("error "); 4 })
+  Thread.sleep(100)
+```
+
+sont-elles équivalentes en terme d'output ?
+
+sol false
+exp
+Non, la première version affiche
+```
+hey error ok 4
+```
+et la deuxième et la troisième version affiche
+```
+hey error 
+```
+Pourquoi ? Dans la première, `recover` retourne une nouvelle future qui réussit après s'être "récupérée", et comme le `map` définit une callback à lancer si la future réussit elle est lancée également. Dans la 2ème version, la première future échoue donc `map` ne se lance pas, mais la future retournée par `map` transmet l'échec et cet échec est traité par `recover`. La troisième définit 2 autres callback sur la future originale, seulement celle du `recover` se lance.
+
+exo Autres méthodes
+// TODO: how to include future-de-future exo folder from PLX ?????
+// TODO: how to include refactoring to transform exo ???
+// TODO: faire checker l'implémentation à la prof
+
+exo 6 méthodes et concepts avancées
+
+// TODO: how to include long-wait exo ???
+
+subexo Fais de beaux rêves
+Imaginons que la JVM lance ce code avec 5 threads natifs pour exécuter ces 7 futures, combien de temps prendra l'exécution total ?
+```scala
+  val f1 = Future { Thread.sleep(2000) }
+  val f2 = Future { Thread.sleep(2000) }
+  val f3 = Future { Thread.sleep(2000) }
+  val f4 = Future { Thread.sleep(2000) }
+  val f5 = Future { Thread.sleep(2000) }
+  val f6 = Future { Thread.sleep(1000) }
+  val f7 = Future { Thread.sleep(1000) }
+```
+
+Donner un temps approximatif en secondes (nombre entier). Note: `Thread.sleep` prend un temps en millisecondes en entrées.
+
+sol 1
+exp **1 seconde.** Attention ce n'est pas 3 secondes.
+
+Les `Thread.sleep` vont juste faire endormir la future, c'est à dire le thread virtuel géré dans la JVM. Cela ne n'endort pas le thread natif qui exécute le code d'une future, quand celle-ci s'endore celui-ci peut continuer de travailler. Ainsi toutes les futures seront lancées, elles s'endormiront toute à peu près en même temps, et se réveilleront également quasiment ensemble. Quand les 5 premières futures s'endorment les threads natifs peuvent gérer les futures 6 et 7.
+
+subexo .open J'ai bien tenté...
+Explique avec tes propres mots ce que permet de répresenter le type `Try` et les différentes valeurs et types possibles.
+
+exp
+TODO explication
+
+subexo .open J'ai bien cherché...
+Donne 2 exemples d'équivalents du type `Try` de Scala dans d'autres languages!
+
+exp
+
+En Rust, le type [`Result`](https://doc.rust-lang.org/std/result/) avec le type du résultat et type de l'erreur sont génériques.
+```rust
+enum Result<T, E> { Ok(T), Err(E) }
+```
+
+En Haskell, le type [`Either`](https://hackage.haskell.org/package/base-4.21.0.0/docs/Data-Either.html) permet de représenter une valeur parmi 2 possibilités. On met généralement l'erreur à gauche et le résultat à droite (parce que le résultat is right -> est correct).
+```haskell
+data Either a b = Left a | Right b
+```
+
+Même le C++ a un [`std::expected`](https://en.cppreference.com/w/cpp/utility/expected.html)
+```cpp
+template< class T, class E >
+class expected;
+```
+
+subexo Et pourquoi pas ?
+Pourquoi en Scala on utilise `Try` et pas seulement `Option` ?
+
+exp
+
+`Option` permet de stocker qqch ou rien, tandis que Try stocke un résultat ou une erreur. Cela permet d'avoir des détails sur l'erreur contrairement à `Option`, dont l'absence de valeur ne signifie pas forcément une erreur et si c'était le cas on ne pourrait pas préciser de message ou d'informations de contexte sur `None`.
+
+// ## Pass by what ?
+// Juste en regardant ce morceau de code, qu'est-ce qu'on peut savoir de la signature de `Try.apply()` ? En sachant que le but est de lancer une fonction et de catcher l'exception. Un `Try[T]` contient soit un `Success(T)` pour représenter l'état de succès, soit une `Failure(error)` (TODO: type de l'erreur).
+// ```scala
+//   val dividend = Try(
+//     StdIn.readLine("Enter an Int that you'd like to divide:\n").toInt
+//   )
+// ```
+// 
+// <details>
+// <summary>Solution</summary>
+// 
+// L'argument est en pass by name obligatoirement pour pouvoir catcher l'exception dans l'implémentation du `Try.apply()`. Si on était en pass by value, le paramètre donné serait évalué à l'appel et cela n'attraperait pas l'exception !
+// </details>
+// 
+// TODO: pertinence de l'exo avec ce contexte et cet endroit ?
+// TODO: créer des exos de passe by name vs pass by value vs lazy val.
+
+// TODO: plus d'exos avec des estimations de temps passée pour mieux comprendre la parallélisation, inclure des listes de futures
+
+// ## 7 Compte les futures
+// Il est parfois difficile de s'y retrouver dans toutes ces futures... essayons d'identifier où elles sont créées et combien on en trouve au total.
+// 
+// TODO: 2-3 exos là dessus
+// 
+// 
+// idée d'exos sur les futures après le TE 2
+// 
+// future.filter ->
+// 
+// refactoring entre différentes méthodes comme lexo de flatmap + filter+ recover refactor avec transformWith, transform.

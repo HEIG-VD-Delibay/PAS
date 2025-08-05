@@ -1,0 +1,7 @@
+exo Refactoring en une seule méthode
+Comment refactoriser le `map` et `recover` du code donné avec une seule méthode de la classe `Future` ?
+
+check Output est resté le même
+see Got 1
+
+exp Quand on veut traiter d'un coup le cas de succès et d'échec, on peut utiliser `Future.transform`.
