@@ -1,4 +1,4 @@
-exo Refactoring en une seule méthode
+exo [tal] Refactoring en une seule méthode
 Comment refactoriser le `map` et `recover` du code donné avec une seule méthode de la classe `Future` ?
 
 check Output est resté le même

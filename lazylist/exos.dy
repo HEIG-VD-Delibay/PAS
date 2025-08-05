@@ -2,8 +2,8 @@ skill Lazylist
 
 // TODO: utiliser d'autres formes d'initialisations de LazyList pour varier un peu
 
-exo Comportement des Lazylist
-subexo
+exo [ink] Comportement des Lazylist
+subexo [ten]
 Qu'affiche ce code ?
 ```scala
 val list = LazyList.from(1)
@@ -18,7 +18,7 @@ sol done
 
 Elle affiche juste `done`, aucun map filter ou take ne s'effectue comme toutes les méthodes sont lazy.
 
-subexo
+subexo [grt]
 Qu'affiche ce code ?
 ```scala
   val list = LazyList.from(1)
@@ -32,7 +32,7 @@ Qu'affiche ce code ?
 ```
 sol 4 5 done
 
-subexo Déclencheur
+subexo [qqv] Déclencheur
 Quelle est la première méthode non lazy qui déclenche l'usage des méthodes lazy ?
 ```scala
   val list = LazyList.from(1)
@@ -48,7 +48,7 @@ sol toList
 
 exp C'est la méthode `toList` qui va lire la liste donnée par le filter jusqu'à arriver à la fin, filter a son tour va déclencher la génération du `take` et du `map`.
 
-subexo .open
+subexo [fqz] .open
 Ce code a un petit soucis à l'exécution, peux-tu l'imaginer et expliquer le problème ?
 ```scala
 val list = LazyList.from(1)
@@ -62,7 +62,7 @@ print("done")
 exp
 La `LazyList` étant infinie, la création de la `List` via le `toList` ne se finira jamais car nous n'avons pas défini de limite dans le nombre d'éléments ou une autre contraintes qui permettrait de s'arrêter à un moment. On aurait pu utiliser `take` ou définir une LazyList finie.
 
-subexo Un simple aller-retour
+subexo [hfp] Un simple aller-retour
 Qu'affiche ce morceau de code ?
 ```scala
 val list = LazyList.from(2)
@@ -87,7 +87,7 @@ Explication de l'exécution et affichage étape par étape.
 1. Les allers retours s'arrête dès que `take` a traité 3 éléments, le filter n'a retourné que les 2 derniers (le 3 et le 4)
 1. Notre liste est donc `List(3, 4)`, celle ci passe dans le `map` final ce qui affiche `3 4` à la fin
 
-exo Code équivalent ?
+exo [juf] Code équivalent ?
 
 Ce code
 
@@ -113,7 +113,7 @@ sol true
 
 exp **Oui c'est équivalent**, stocker les résultats intermédiaires peut paraitre "forcer" l'évaluation des listes mais non, cela reste des `LazyList` qui sont sauvées dans chaque variable `result` et évaluées le plus tard possible.
 
-exo Nombre de valeurs dans une fonction intermédiaire
+exo [yix] Nombre de valeurs dans une fonction intermédiaire
 Combien de fois est appelé la fonction passé à `filter` ? Dit autrement, combien de lignes `filtered something` affiche ce code ?
 ```scala
 val list = LazyList.from(0)
@@ -130,8 +130,8 @@ exp 7 fois. Le toList qui lance la génération via le `take` qui va continuer d
 
 Si tu as répondu 100, attention le `take` est lazy, il ne va pas générer une liste de 100 valeurs avant de continuer, il ne genère que sur demande du filter.
 
-exo Compter les appels et déduire le résultat
-subexo Combien de fois est appelé la fonction passé à `filter` ? Dit autrement, combien de lignes `filtered something` affiche ce code ?
+exo [jjh] Compter les appels et déduire le résultat
+subexo [ahs] Combien de fois est appelé la fonction passé à `filter` ? Dit autrement, combien de lignes `filtered something` affiche ce code ?
 ```scala
 val list = (1 to 10).to(LazyList)
 val result = list
@@ -143,13 +143,13 @@ sol 10
 exp 10 fois. Le `take` continuera à demander à filter de travailler.
 
 
-subexo Résultat
+subexo [ycc] Résultat
 Donne les valeurs de la `List` finale `result`, séparé par des espaces.
 sol 8 9 10
 
 exp `(1 to 10)` signifie une liste des éléments 1,2,3...10. La take a du s'arrêter a 3 éléments comme filter a retourné une `LazyList.empty` après que la queue de la LazyList a retourné une `LazyList.empty` après avoir donné 10 éléments.
 
-exo .open Comprendre des erreurs de compilation, initialisation de LazyList
+exo [grx] .open Comprendre des erreurs de compilation, initialisation de LazyList
 
 En écrivant ce morceau de code:
 ```scala

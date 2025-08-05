@@ -1,8 +1,8 @@
 skill Future
 
-exo Découverte des futures
+exo [uep] Découverte des futures
 
-subexo .open
+subexo [nnj] .open
 
 Etant donnée le code suivant
 ```scala
@@ -25,7 +25,7 @@ Parce que l'ordonnanceur des tâches asynchrone a choisi d'exécuter d'abord la 
 
 On aurai pu mettre un `Thread.sleep` par exemple pour attendre volontairement un certain temps.
 
-subexo Exécutions possibles
+subexo [saw] Exécutions possibles
 
 Etant donnée le code suivant
 ```scala
@@ -135,7 +135,7 @@ End
 
 
 
-subexo .open Etats possible des futures 1.3
+subexo [ikc] .open Etats possible des futures 1.3
 
 Citer les 3 états possible des futures.
 
@@ -144,7 +144,7 @@ exp
 - Terminé avec succès
 - Terminé avec échec
 
-subexo .open Petit problème
+subexo [hph] .open Petit problème
 
 Quel est le problème dans ce morceau de code ? Donner le nom de ce qui est fait et expliquer quelle autre approche corrige le problème.
 ```scala
@@ -166,8 +166,8 @@ Le problème c'est qu'on fait de l'**attente active**, on attend activement que 
 </details>
 
 
-exo Imaginer l'exécution
-subexo
+exo [wod] Imaginer l'exécution
+subexo [xrc]
 
 Etant donnée ce code, quelles affirmations sont garanties ?
 
@@ -205,7 +205,7 @@ Results
 Ran 1000 times './hello', found 4 unique outputs
 ```
 
-subexo
+subexo [mfd]
 
 Cet output est-il déterministe ? (en considérant que le temps en sleep est suffisant pour que toutes les futures se soient lancées).
 
@@ -222,7 +222,7 @@ sol false
 exp
 Non, les 2 map sur `f1` font qu'on ne peut pas savoir si `C` ou `B` s'affiche d'abord.
 
-subexo
+subexo [kci]
 
 Cet output est-il déterministe ? (en considérant que le temps en sleep est suffisant pour que toutes les futures se soient lancées).
 
@@ -238,7 +238,7 @@ Si oui donne l'output, sinon écrit `INDE` et réfléchit dans ta tête le pourq
 sol error: oups
 exp C'est déterministe, et l'output est `error: oups`
 
-subexo
+subexo [rpj]
 Qu'affiche ce bout de code ?
 
 ```scala
@@ -251,7 +251,7 @@ sol hey ok 2
 
 exp Le recover ne s'étant pas lancé, le valeur de résultat de la première future contient toujours `2`, cette valeur est récupérée dans le `x` du `map`.
 
-subexo
+subexo [tlh]
 Qu'affiche ce bout de code ?
 
 ```scala
@@ -264,7 +264,7 @@ Qu'affiche ce bout de code ?
 sol hey error ok 4
 exp Le `recover` définit une nouvelle valeur de résultat de la future à 4, ce qui explique sa récupération dans le map.
 
-exo Types de futures
+exo [mtc] Types de futures
 
 ```scala
   val f0 = Future { List(1, 2, 3, 4) }
@@ -276,33 +276,33 @@ exo Types de futures
   val f6 = f0.map(_ => { throw Exception("oupsi"); 32 }).recover(e => e.getMessage())
 ```
 
-subexo Type de f0 ?
+subexo [adr] Type de f0 ?
 sol Future[List[Int]]
 
-subexo Type de f1 ?
+subexo [pam] Type de f1 ?
 sol Future[Unit]
 
-subexo Type de f2 ?
+subexo [aay] Type de f2 ?
 sol Future[Boolean]
 
-subexo Type de f3 ?
+subexo [iiq] Type de f3 ?
 sol Future[Future[Boolean]]
 
-subexo Type de f4 ?
+subexo [lex] Type de f4 ?
 sol Future[Int]
 
-subexo Type de f5 ?
+subexo [uzu] Type de f5 ?
 Ca se corse attention...
 sol Future[Boolean | String]
 
-subexo Type de f6 ?
+subexo [iss] Type de f6 ?
 sol Future[Int | String]
 
 exp Même si la callback du map va dans tous les cas jeter un exception, le type de résultat `Int` reste à prendre en compte. Le type de retour de recover impacte le type de la future puisqu'elle passe dans l'état réussi à ce moment.
 
 // TODO: encore des exos de type sur les For comprehensions avec des Future
 
-exo Code équivalent ?
+exo [shb] Code équivalent ?
 Le code précédent
 ```scala
   Future { print("hey "); throw Exception("aii") }
@@ -339,16 +339,16 @@ hey error
 ```
 Pourquoi ? Dans la première, `recover` retourne une nouvelle future qui réussit après s'être "récupérée", et comme le `map` définit une callback à lancer si la future réussit elle est lancée également. Dans la 2ème version, la première future échoue donc `map` ne se lance pas, mais la future retournée par `map` transmet l'échec et cet échec est traité par `recover`. La troisième définit 2 autres callback sur la future originale, seulement celle du `recover` se lance.
 
-exo Autres méthodes
+exo [syj] Autres méthodes
 // TODO: how to include future-de-future exo folder from PLX ?????
 // TODO: how to include refactoring to transform exo ???
 // TODO: faire checker l'implémentation à la prof
 
-exo 6 méthodes et concepts avancées
+exo [jti] 6 méthodes et concepts avancées
 
 // TODO: how to include long-wait exo ???
 
-subexo Fais de beaux rêves
+subexo [dig] Fais de beaux rêves
 Imaginons que la JVM lance ce code avec 5 threads natifs pour exécuter ces 7 futures, combien de temps prendra l'exécution total ?
 ```scala
   val f1 = Future { Thread.sleep(2000) }
@@ -367,13 +367,13 @@ exp **1 seconde.** Attention ce n'est pas 3 secondes.
 
 Les `Thread.sleep` vont juste faire endormir la future, c'est à dire le thread virtuel géré dans la JVM. Cela ne n'endort pas le thread natif qui exécute le code d'une future, quand celle-ci s'endore celui-ci peut continuer de travailler. Ainsi toutes les futures seront lancées, elles s'endormiront toute à peu près en même temps, et se réveilleront également quasiment ensemble. Quand les 5 premières futures s'endorment les threads natifs peuvent gérer les futures 6 et 7.
 
-subexo .open J'ai bien tenté...
+subexo [sry] .open J'ai bien tenté...
 Explique avec tes propres mots ce que permet de répresenter le type `Try` et les différentes valeurs et types possibles.
 
 exp
 TODO explication
 
-subexo .open J'ai bien cherché...
+subexo [cvu] .open J'ai bien cherché...
 Donne 2 exemples d'équivalents du type `Try` de Scala dans d'autres languages!
 
 exp
@@ -394,7 +394,7 @@ template< class T, class E >
 class expected;
 ```
 
-subexo Et pourquoi pas ?
+subexo [rsy] Et pourquoi pas ?
 Pourquoi en Scala on utilise `Try` et pas seulement `Option` ?
 
 exp

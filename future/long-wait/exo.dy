@@ -1,4 +1,4 @@
-exo On vous attend depuis une heure
+exo [lzh] On vous attend depuis une heure
 Au lieu d'attendre un temps arbitraire comme ici 3 secondes, comment afficher "done" seulement quand les 3 futures suivantes sont-elles finies tout en gardant leur parallélisation ?
 
 _Note: garde le même `Thread.sleep` à la toute fin pour que les futures aient le temps de s'exécuter_
@@ -12,4 +12,3 @@ see good
 good
 good
 done
-

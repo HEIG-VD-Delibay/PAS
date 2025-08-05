@@ -1,6 +1,6 @@
-skill LazyList
+skill [laz] LazyList
 Objectif: arriver à imaginer plus concrètement ce que l'évaluation paresseuse signifie vraiment où suivre l'exécution est beaucoup plus ardu.
 **Important à savoir**: `LazyList.from(n: Int)` retourne une lazylist infinie de nombre entiers commençant par `n`.
 dir lazylist
-skill Future
+skill [fut] Future
 dir future
